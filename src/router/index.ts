@@ -1,23 +1,28 @@
 import Vue from 'vue'
 import VueRouter, { RouteConfig } from 'vue-router'
-import Home from '../views/Home.vue'
+// @ts-ignore
+import {
+  getToken,
+  setToken
+} from '@/utils/auth'
 
 Vue.use(VueRouter)
 
 const routes: Array<RouteConfig> = [
   {
-    path: '/',
-    name: 'Home',
-    component: Home
+    path: '/panel',
+    component: () => import('../views/layout/Layout.vue'),
+    children: [
+      { path: '', name: 'Dashboard', component: () => import('../views/Dashboard.vue'), }
+    ]
   },
   {
-    path: '/about',
-    name: 'About',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
-  }
+    path: '/login',
+    component: () => import('../views/layout/LoginLayout.vue'),
+    children: [
+      { path: '', name: 'Login', component: () => import('../views/Login.vue'), }
+    ]
+  },
 ]
 
 const router = new VueRouter({
@@ -25,5 +30,23 @@ const router = new VueRouter({
   base: process.env.BASE_URL,
   routes
 })
+
+
+router.beforeEach((to, from, next) => {
+  const publicPages = ['/login'];
+  const authRequired = !publicPages.includes(to.path);
+  const loggedIn = getToken();
+
+  if (authRequired && !loggedIn) {
+    return next('/login')
+  }
+  if ((!authRequired && loggedIn) || to.path == '/') {
+    next('/panel')
+  }
+
+  next()
+});
+
+
 
 export default router
